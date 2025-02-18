@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, reactive, onBeforeMount, onMounted } from 'vue'
+import { ref, reactive, onBeforeMount, onMounted, computed, watch } from 'vue'
 const month_names: string[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const curr_month = ref('')
 const curr_year = ref()
+const inMounthDays = ref()
 
 const currentData = ref<Date | undefined | any>()
-const reactive_days_of_month = ref()
 
 const first_day = ref<Date | undefined | any>()
+
 
 const isLeapYear = (year: number) => {
     return (year % 4 === 0 && year % 100 !== 0 && year % 400 !== 0) || (year % 100 === 0 && year % 400 ===0)
@@ -19,41 +20,60 @@ const getToday = (i: number, year: number, month: number, first_day: any) => {
     return i - first_day.value.getDay() + 1 === currentData.value.getDate() && year === currentData.value.getFullYear() && month === currentData.value.getMonth()
 }
 
-
-const generateCalendar = (month: number, year: number) => {
-    // let days_of_month = [31, getFebDays(year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    // let currDate = new Date()
-    // if (!month) month = currDate.getMonth()
-    // if (!year) year = currDate.getFullYear()
-    
-    reactive_days_of_month.value = [31, getFebDays(year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]    
-    curr_month.value = `${month_names[month]}`
-    curr_year.value = year
-
-    // let first_day = new Date(year, month, 1)  
-    first_day.value = new Date(year, month, 1)  
-    console.log(first_day.value.getDay())
-    console.log(currentData.value)
-    
+const getPreYear = () => {
+    --curr_year.value
+    const d = month_names.indexOf(`${curr_month.value}`)   
+    generateCalendar(d, curr_year.value)   
 }
 
-// const currDate = new Date()
-// const current_month = currDate.getMonth()
-// const current_year = currDate.getFullYear()
+const getNextYear = () => {    
+    ++curr_year.value
+    console.log('month', inMounthDays.value)   
 
-onBeforeMount(()=> {   
+    const d = month_names.indexOf(`${curr_month.value}`)
+    generateCalendar(d, curr_year.value)
 
-    const currDate = new Date()
-    currentData.value = currDate
-    // const current_month = currDate.getMonth()
-    // const current_year = currDate.getFullYear()
-    // generateCalendar(current_month, current_year)
+}
 
-    generateCalendar(currDate.getMonth(), currDate.getFullYear())
+const emptyCells = computed(() => {
+    if (!first_day.value) return 0;
+    console.log('em', first_day.value)
+    console.log('em', first_day.value.getDay())
+    if(first_day.value.getDay() === 1) return 7
+
+    if(first_day.value.getDay() == 0) return 6
+    return first_day.value.getDay() - 1; // Количество пустых ячеек перед первым днем
+
 })
 
 
-// generateCalendar(current_month, current_year)
+
+
+const generateCalendar = (month: number, year: number) => {
+    let days = [31, getFebDays(year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    
+    if (!month) curr_month.value = currentData.value.getMonth()
+    if (!year) curr_year.value = currentData.value.getFullYear()
+    
+    
+    curr_month.value = `${month_names[month]}`
+    curr_year.value = year
+    inMounthDays.value = days[month]   
+
+    first_day.value = new Date(year, month, 1)     
+    
+    
+}
+
+onBeforeMount(()=> {    
+
+    const currDate = new Date()
+    currentData.value = currDate
+    generateCalendar(currDate.getMonth(), currDate.getFullYear())
+    
+})
+
 
 </script>
 
@@ -64,11 +84,15 @@ onBeforeMount(()=> {
                 <div class="month-picker">{{curr_month}}</div>
                 <div class="year-picker">
                     <div class="year-change">
-                        <pre>&lt</pre>
+                        <pre
+                            @click="getPreYear"
+                        >&lt</pre>
                     </div>
                     <div class="year">{{curr_year}}</div>
                     <div class="year-change">
-                        <pre>&gt</pre>
+                        <pre
+                            @click="getNextYear"
+                        >&gt</pre>
                     </div>
                 </div>
             </div>
@@ -86,32 +110,23 @@ onBeforeMount(()=> {
                         </tr>
                     </thead>
                 </table>
+                
                 <div class="calendar__days">
+                    <!-- Пустые ячейки перед первым днем месяца -->
                     <div 
-                        v-for="el, i in reactive_days_of_month[1] + first_day.getDay() - 1" 
-                        :key="i"
+                        v-for="i in emptyCells" 
+                        :key="'empty-' + i"
+                        class="cell"
+                    ></div>
+
+                    <!-- Дни месяца -->
+                    <div 
+                        v-for="day in inMounthDays" 
+                        :key="day"
                         class="cell"
                     >
-                        <span
-                            v-if="(i + 1) >= first_day.getDay()"
-                        >
-                            {{ (i + 1) - first_day.getDay() + 1 }}
-                        </span>                        
+                        <span>{{ day }}</span>                                          
                     </div>
-                    <!-- <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div>
-                    <div class="cell"></div> -->
                 </div>
             </div>
         </div>
